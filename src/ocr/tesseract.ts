@@ -65,15 +65,15 @@ function toBbox(b: Tesseract.Bbox): OCRResult['bbox'] {
   };
 }
 
-export async function runOCR(
-  dataUrl: string,
-  sourceLang: string,
-  confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
+async function recognizeAndParse(
+  imageDataUrl: string,
+  tessLang: string,
+  confidenceThreshold: number,
 ): Promise<OCRResult[]> {
-  const tessLang = resolveLangCode(sourceLang);
   const worker = await getWorker(tessLang);
 
-  const { data } = await worker.recognize(dataUrl);
+  const { data } = await worker.recognize(imageDataUrl, {}, { blocks: true, text: true });
+  console.log('[manhwa-translator] raw Tesseract response:', data);
   if (!data.blocks) return [];
 
   const results: OCRResult[] = [];
@@ -96,6 +96,19 @@ export async function runOCR(
   }
 
   return results;
+}
+
+export async function runOCR(
+  dataUrl: string,
+  sourceLang: string,
+  confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
+  usePreprocessing = false,
+): Promise<OCRResult[]> {
+  const tessLang = resolveLangCode(sourceLang);
+  const image = usePreprocessing
+    ? await preprocessForOCR(dataUrl, sourceLang)
+    : dataUrl;
+  return recognizeAndParse(image, tessLang, confidenceThreshold);
 }
 
 export async function terminateAll(): Promise<void> {
