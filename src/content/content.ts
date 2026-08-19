@@ -11,6 +11,7 @@ setTimeout(async () => {
   resetCapture();
   await scrollAndCapture(500);
   const band = await scrollAndCapture(500);
+  console.log('[TEST] band image:', band);
   if (band) {
     const results = await runOCR(band, 'korean', 0);
     console.log('[TEST] raw OCR order:', results.map((r) => r.text));
