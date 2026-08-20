@@ -2,25 +2,31 @@ import { getReadingRegion, startRegionSelect, toggleTranslator } from './region-
 import { runOCR } from '../ocr/tesseract';
 import { sortReadingOrder, groupNearbyText } from '../ocr/reading-order';
 import { scrollAndCapture, resetCapture } from './scanner';
+import { translate } from '../translation/translation-manager';
 
-(window as any).__test = { runOCR, scrollAndCapture, resetCapture };
+(window as any).__test = { runOCR, scrollAndCapture, resetCapture, translate };
 
 console.log('content loaded');
 
 setTimeout(async () => {
-  resetCapture();
-  await scrollAndCapture(500);
-  const band = await scrollAndCapture(500);
-  console.log('[TEST] band image:', band);
-  if (band) {
-    const results = await runOCR(band, 'korean', 0);
-    console.log('[TEST] raw OCR order:', results.map((r) => r.text));
+  const settings = await browser.storage.local.get([
+    'openrouter_api_key', 'openrouter_model', 'groq_api_key', 'groq_model',
+  ]);
+  console.log('[TEST] settings loaded:', {
+    hasOpenRouterKey: !!settings.openrouter_api_key,
+    openrouterModel: settings.openrouter_model,
+    hasGroqKey: !!settings.groq_api_key,
+    groqModel: settings.groq_model,
+  });
 
-    const sorted = sortReadingOrder(results);
-    console.log('[TEST] sorted reading order:', sorted.map((r) => r.text));
-
-    const groups = groupNearbyText(results, 80);
-    console.log('[TEST] groups:', groups.map((g) => g.map((r) => r.text)));
+  try {
+    const result = await translate(
+      ['우리가', '그렇게', '둘이', '떨어지라고', '수없이', '말렸는데도'],
+      { sourceLang: 'korean', targetLang: 'english' },
+    );
+    console.log('[TEST] translation result:', result);
+  } catch (err) {
+    console.error('[TEST] translation failed:', err);
   }
 }, 3000);
 
